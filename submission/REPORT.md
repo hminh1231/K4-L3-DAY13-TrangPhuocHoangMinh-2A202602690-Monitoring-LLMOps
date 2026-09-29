@@ -9,7 +9,7 @@
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/hminh1231/K4-L3-DAY13-TrangPhuocHoangMinh-2A202602690-Monitoring-LLMOps
 - **Commit SHA cuối:**
-- **Challenge ID:**
+- **Challenge ID:** day13-k4-l3a-monitoring-llmops-v1
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602690`
 
 ## 2. Evidence index
@@ -72,14 +72,14 @@
 
 ## 7. Điều tra challenge
 
-- **Challenge ID:**
-- **Khoảng thời gian điều tra:**
-- **Triệu chứng từ metrics:**
-- **Log line và correlation ID liên quan:**
-- **Trace ID và span gây ảnh hưởng:**
-- **Root cause:**
-- **Fix action:**
-- **Preventive measure:**
+- **Challenge ID:** `day13-k4-l3a-monitoring-llmops-v1` (cohort K4, incident `rag_slow`, feature `monitoring`, seed 1311, ngưỡng `latency_threshold_ms` = 2000).
+- **Khoảng thời gian điều tra:** 2026-09-29 10:08:20Z–10:08:35Z (17:08:20–17:08:35 ICT). Dashboard 60 phút tính tới log cuối `2026-09-29T10:08:35.715919Z` chỉ còn đúng 5 request của challenge.
+- **Triệu chứng từ metrics:** Panel latency breach. Trên 5 `response_sent`: P50 2653ms, P95 3852ms, P99 3852ms, TTFT P95 50ms. P95 vượt ngưỡng dashboard 3000ms và cả 5 request vượt ngưỡng challenge 2000ms. Error rate 0%, retrieval success 100%, quality mean 0.84, cost tổng 0.0093 USD. Không phải lỗi tool và không phải cost spike. Ảnh: `evidence/12-incident-metric.png`.
+- **Log line và correlation ID liên quan:** Request kéo P95 là `req-3de57ec1`, event `response_sent` lúc `2026-09-29T10:08:25.080534Z`, `feature=monitoring`, `latency_ms=3852`, `ttft_ms=50`, `tool_success=true`, `quality_score=0.8`. Bốn request còn lại cùng feature cũng chậm: `req-c8b7c33e` 2653ms, `req-17a5ab1a` 2653ms, `req-299a7a7d` 2652ms, `req-77fbc891` 2654ms. Ảnh: `evidence/13-incident-log.png`.
+- **Trace ID và span gây ảnh hưởng:** Trace `9c9522669cb444ec6ea1b561978cd4b7` có metadata `correlation_id=req-3de57ec1`. Span `retrieve-context` (retriever) 2.502s, `generate-response` (generation) 0.151s với TTFT 50ms, root `lab-agent-run` 3.853s. Khoảng ~1.2s nằm giữa lúc retrieval kết thúc (10:08:23.729Z) và generation bắt đầu (10:08:24.928Z), đúng chỗ `resolve_prompt` gọi Langfuse. Bốn trace kia cùng kiểu: retrieval ≈ 2.50s, generation ≈ 0.15s, agent ≈ 2.65s (`7c113b97d5ebaf008cb5d7ccaae10bcf`, `ea19baab4489c873371ea215e4173ada`, `a57bf86039d598b6d5b3473934b124db`, `31e3e662d4ba890aa1a7c0aa578693cf`). Ảnh: `evidence/14-incident-trace.png`.
+- **Root cause:** Incident `rag_slow` chèn `time.sleep(2.5)` trong `retrieve()` trước khi trả tài liệu corpus `monitoring`. Span `retrieve-context` một mình đã vượt ngưỡng 2000ms trên mọi request, trong khi generation và TTFT vẫn bình thường, `tool_success` vẫn true. Request đầu `req-3de57ec1` còn chờ thêm khoảng 1.2s để lấy prompt `day13-chat` label `production` (cache 60 giây, timeout fetch 2 giây), nên latency thành 3852ms và đẩy P95 qua SLO dashboard 3000ms. Năm request chạy đồng thời, nhưng `chat` gọi `agent.run()` chặn event loop nên chúng xếp hàng. `latency_ms` trong log là thời gian xử lý của agent, không phải thời gian chờ phía client.
+- **Fix action:** Đã tắt incident bằng `POST /incidents/rag_slow/disable`. Request kiểm tra `req-098212a6` (cùng feature `monitoring`) trả `latency_ms=155`, `ttft_ms=50`, dưới ngưỡng 2000ms. Với hệ thống thật: bỏ delay giả trong retriever, đặt timeout cho retrieval, và không chặn event loop bằng sleep đồng bộ.
+- **Preventive measure:** Giữ alert `slow_user_responses` (P95 &gt; 3000ms trong 5 phút). Thêm cảnh báo theo span khi `retrieve-context` P95 &gt; 500ms, vì ngưỡng challenge 2000ms chặt hơn SLO dashboard 3000ms và cửa sổ sự cố này chỉ dài 15 giây nên alert 5 phút chưa kịp cháy. Bọc `resolve_prompt` bằng một span riêng để khoảng chờ fetch prompt hiện trên waterfall. Giữ `correlation_id` trong log và trace metadata để nối ba tín hiệu.
 
 ## 8. Giải thích và tự đánh giá
 

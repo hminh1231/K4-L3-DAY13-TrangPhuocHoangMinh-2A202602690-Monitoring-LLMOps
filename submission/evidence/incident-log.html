@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Incident logs — day13-k4-l3a-monitoring-llmops-v1</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 16px; background: #0f172a; color: #e2e8f0; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p { color: #94a3b8; margin: 0 0 12px; font-size: 13px; }
+    pre { background: #1e293b; padding: 12px; border-radius: 8px; overflow: auto; font-size: 12px; line-height: 1.45; }
+    .slow { color: #fca5a5; }
+  </style>
+</head>
+<body>
+  <h1>Challenge logs — feature monitoring</h1>
+  <p>Window 2026-09-29T10:08:20Z–10:08:35Z · challenge day13-k4-l3a-monitoring-llmops-v1 · threshold 2000ms · all five response_sent rows are above the threshold. Highlighted row is the P95 request.</p>
+  <pre>{
+  "ts": "2026-09-29T10:08:25.080534Z",
+  "event": "response_sent",
+  "correlation_id": "<span class="slow">req-3de57ec1</span>",
+  "feature": "monitoring",
+  "latency_ms": <span class="slow">3852</span>,
+  "ttft_ms": 50,
+  "tool_success": true,
+  "model": "claude-sonnet-4-5",
+  "quality_score": 0.8,
+  "tokens_in": 35,
+  "tokens_out": 88,
+  "cost_usd": 0.001425
+}
+
+response_sent siblings in the same window:
+req-c8b7c33e  latency_ms=2653  ttft_ms=50  tool_success=true  ts=2026-09-29T10:08:27.743049Z
+req-17a5ab1a  latency_ms=2653  ttft_ms=50  tool_success=true  ts=2026-09-29T10:08:30.400275Z
+req-299a7a7d  latency_ms=2652  ttft_ms=50  tool_success=true  ts=2026-09-29T10:08:33.057137Z
+req-77fbc891  latency_ms=2654  ttft_ms=50  tool_success=true  ts=2026-09-29T10:08:35.715919Z</pre>
+</body>
+</html>

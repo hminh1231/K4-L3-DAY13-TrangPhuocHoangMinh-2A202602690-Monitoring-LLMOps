@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>Incident trace — req-3de57ec1</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 16px; background: #0f172a; color: #e2e8f0; }
+    h1 { font-size: 20px; margin: 0 0 4px; }
+    p { color: #94a3b8; margin: 0 0 10px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; background: #1e293b; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #334155; font-size: 13px; }
+    .bar { height: 14px; background: #38bdf8; border-radius: 4px; }
+    .slow { background: #ef4444; }
+    .gap { background: #f59e0b; }
+  </style>
+</head>
+<body>
+  <h1>Trace 9c9522669cb444ec6ea1b561978cd4b7</h1>
+  <p>correlation_id req-3de57ec1 · session k4-l3a-challenge-s05 · feature monitoring · prompt day13-chat production v1 · Langfuse project day13-k4-l3a-2A202602690</p>
+  <table>
+    <tr><th>Span</th><th>Type</th><th>Start</th><th>Latency</th><th></th></tr>
+    <tr><td>lab-agent-run</td><td>AGENT</td><td>10:08:21.227Z</td><td>3.853s</td><td><div class="bar" style="width:96%"></div></td></tr>
+    <tr><td>retrieve-context</td><td>RETRIEVER</td><td>10:08:21.227Z</td><td>2.502s</td><td><div class="bar slow" style="width:65%"></div></td></tr>
+    <tr><td>gap before generation (prompt fetch)</td><td>—</td><td>10:08:23.729Z</td><td>~1.20s</td><td><div class="bar gap" style="width:31%"></div></td></tr>
+    <tr><td>generate-response</td><td>GENERATION</td><td>10:08:24.928Z</td><td>0.151s · TTFT 50ms</td><td><div class="bar" style="width:4%"></div></td></tr>
+    <tr><td>score-answer-quality</td><td>EVALUATOR</td><td>10:08:25.079Z</td><td>0s</td><td></td></tr>
+  </table>
+  <p>Same pattern on the other four traces: retrieve-context ≈ 2.50s, generate-response ≈ 0.15s, agent ≈ 2.65s. Trace IDs: 7c113b97d5ebaf008cb5d7ccaae10bcf (req-77fbc891), ea19baab4489c873371ea215e4173ada (req-299a7a7d), a57bf86039d598b6d5b3473934b124db (req-17a5ab1a), 31e3e662d4ba890aa1a7c0aa578693cf (req-c8b7c33e).</p>
+</body>
+</html>
