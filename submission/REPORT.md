@@ -8,7 +8,7 @@
 - **MSSV:** 2A202602690
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/hminh1231/K4-L3-DAY13-TrangPhuocHoangMinh-2A202602690-Monitoring-LLMOps
-- **Commit SHA cuối:** PENDING_SHA
+- **Commit SHA cuối:** `5822fb0794abedbec604051d62156b6ba4553939` (commit chứa source, evidence và báo cáo). Commit ngay sau trên `main` chỉ điền hash này.
 - **Challenge ID:** day13-k4-l3a-monitoring-llmops-v1
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602690`
 
