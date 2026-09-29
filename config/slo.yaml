@@ -7,7 +7,15 @@ primary_slo:
     total_event: 'event == "request_received"'
   target_percent: 99.5
   error_budget_percent: 0.5
-  note: Học viên phải giải thích hoặc điều chỉnh ngưỡng bằng baseline của mình.
+  note: >
+    Giữ ngưỡng 3000ms và target 99.5%. Log hiện tại (40 response_sent, không bật incident)
+    có latency P50 420ms, P95 1187ms, P99 1355ms, max 1355ms, nên 100% request là good event.
+    Ngưỡng 3000ms nằm trên đuôi bình thường của mock LLM và dưới mức scenario rag_slow
+    (ngủ 2.5s cộng thời gian generate), nên P95 vượt SLO đúng khi retrieval chậm.
+    Error budget = 100 - 99.5 = 0.5% số request_received trong cửa sổ 28 ngày.
+    Ví dụ 10 000 request/28 ngày thì được phép 50 request chậm (>3000ms) hoặc không có response_sent.
+    Tốc độ đốt budget = tỉ lệ bad thực tế / 0.5%. Bad 0.5% đốt hết đúng 28 ngày;
+    bad 2% (bằng guardrail error rate) đốt hết budget trong 28 * 0.5 / 2 = 7 ngày.
 guardrails:
   error_rate_pct_max: 2
   daily_cost_usd_max: 2.5

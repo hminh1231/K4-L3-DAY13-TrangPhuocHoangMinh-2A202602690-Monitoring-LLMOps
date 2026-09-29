@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from . import metrics
 from .mock_llm import FakeLLM
 from .mock_rag import retrieve
-from .pii import hash_user_id, summarize_text
+from .pii import hash_user_id, scrub_text, summarize_text
 from .prompt_management import resolve_prompt
 from .tracing import get_langfuse_client, observe, propagate_attributes, tracing_enabled
 
@@ -41,7 +41,7 @@ class LabAgent:
         with propagate_attributes(
             user_id=hash_user_id(user_id),
             session_id=session_id,
-            tags=["lab", feature, self.model],
+            tags=["lab", feature],
             trace_name="day13-agent-request",
             environment=os.getenv("APP_ENV", "dev"),
             metadata={
@@ -51,6 +51,9 @@ class LabAgent:
             },
         ):
             started = time.perf_counter()
+            langfuse_client.update_current_span(
+                input=[{"role": "user", "content": scrub_text(message)}],
+            )
             docs = retrieve(message)
             prompt = resolve_prompt(
                 langfuse_client,
@@ -59,7 +62,13 @@ class LabAgent:
                 message=message,
                 enabled=tracing_enabled(),
             )
+            with propagate_attributes(prompt=prompt.managed_prompt):
+                response = self.llm.generate(prompt.text)
+            quality_score = self._heuristic_quality(message, response.text, docs)
+            latency_ms = int((time.perf_counter() - started) * 1000)
+            cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
             langfuse_client.update_current_span(
+                output=[{"role": "assistant", "content": scrub_text(response.text)}],
                 metadata={
                     "doc_count": len(docs),
                     "query_preview": summarize_text(message),
@@ -71,13 +80,12 @@ class LabAgent:
                 },
                 version=prompt.version,
             )
-            # TODO (CP2): instrument retrieve() and FakeLLM.generate() as child
-            # observations. The nested generation must receive prompt, usage and cost.
-            with propagate_attributes(prompt=prompt.managed_prompt):
-                response = self.llm.generate(prompt.text)
-            quality_score = self._heuristic_quality(message, response.text, docs)
-            latency_ms = int((time.perf_counter() - started) * 1000)
-            cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
+            langfuse_client.score_current_trace(
+                name="quality",
+                value=float(quality_score),
+                data_type="NUMERIC",
+                comment="Heuristic quality proxy from retrieved context and answer overlap",
+            )
 
         metrics.record_request(
             latency_ms=latency_ms,
@@ -103,6 +111,7 @@ class LabAgent:
         output_cost = (tokens_out / 1_000_000) * 15
         return round(input_cost + output_cost, 6)
 
+    @observe(name="score-answer-quality", as_type="evaluator", capture_input=False, capture_output=False)
     def _heuristic_quality(self, question: str, answer: str, docs: list[str]) -> float:
         score = 0.5
         if docs:
@@ -113,4 +122,12 @@ class LabAgent:
             score += 0.1
         if "[REDACTED" in answer:
             score -= 0.2
-        return round(max(0.0, min(1.0, score)), 2)
+        score = round(max(0.0, min(1.0, score)), 2)
+        get_langfuse_client().update_current_span(
+            input={
+                "question": scrub_text(question),
+                "doc_count": len(docs),
+            },
+            output={"quality_score": score},
+        )
+        return score

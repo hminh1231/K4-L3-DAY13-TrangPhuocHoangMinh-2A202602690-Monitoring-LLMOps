@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>K4-L3A Day 13 Monitoring & LLMOps</title>
+  <style>
+    body { font-family: Segoe UI, sans-serif; margin: 8px 12px; background: #0f172a; color: #e2e8f0; }
+    h1 { margin: 0 0 2px; font-size: 22px; }
+    .range { color: #94a3b8; margin: 0 0 8px; font-size: 13px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .card { background: #1e293b; border-radius: 10px; padding: 8px 10px; border-top: 4px solid #22c55e; }
+    .card.breach { border-top-color: #ef4444; }
+    h2 { margin: 0 0 2px; font-size: 15px; }
+    .meta, .note { color: #94a3b8; font-size: 11px; margin: 2px 0; }
+    .headline { font-size: 20px; margin: 4px 0; }
+    .headline span { font-size: 12px; color: #94a3b8; }
+    table { width: 100%; border-collapse: collapse; }
+    td { padding: 2px 0; border-bottom: 1px solid #334155; font-size: 13px; }
+    td:last-child { text-align: right; }
+  </style>
+</head>
+<body>
+  <h1>K4-L3A Day 13 Monitoring & LLMOps</h1>
+  <p class="range">Time range: last 60 minutes · refresh 30s · source data/logs.jsonl · 87 log rows in window</p>
+  <div class="grid">
+            <section class="card ok">
+              <h2>Latency percentiles and TTFT</h2>
+              <p class="meta">latency · unit ms · threshold p95 lte 3000</p>
+              <p class="headline">1187.0000 <span>ms</span></p>
+              <table><tr><td>P50 latency</td><td>420.00</td></tr><tr><td>P95 latency</td><td>1187.00</td></tr><tr><td>P99 latency</td><td>1355.00</td></tr><tr><td>TTFT P95</td><td>50.00</td></tr></table>
+              
+            </section>
+            
+            <section class="card ok">
+              <h2>Request traffic</h2>
+              <p class="meta">traffic · unit requests_per_minute · threshold rate_per_minute gte 1</p>
+              <p class="headline">10.0000 <span>requests_per_minute</span></p>
+              <table><tr><td>Count</td><td>40.00</td></tr><tr><td>Requests per minute</td><td>10.00</td></tr></table>
+              
+            </section>
+            
+            <section class="card ok">
+              <h2>Error rate and retrieval success</h2>
+              <p class="meta">errors · unit percent · threshold error_rate_pct lte 2</p>
+              <p class="headline">0.0000 <span>percent</span></p>
+              <table><tr><td>Error rate</td><td>0.0000</td></tr><tr><td>Retrieval success</td><td>100.00</td></tr></table>
+              <p class='note'>Error breakdown: {}</p>
+            </section>
+            
+            <section class="card ok">
+              <h2>Cost over time</h2>
+              <p class="meta">cost · unit usd · threshold total lte 2.5</p>
+              <p class="headline">0.0809 <span>usd</span></p>
+              <table><tr><td>Total</td><td>0.0809</td></tr></table>
+              
+            </section>
+            
+            <section class="card ok">
+              <h2>Input and output tokens</h2>
+              <p class="meta">tokens · unit tokens · threshold sum_by_field lte 50000</p>
+              <p class="headline">1352.0000 <span>tokens</span></p>
+              <table><tr><td>Input tokens</td><td>1352.00</td></tr><tr><td>Output tokens</td><td>5121.00</td></tr></table>
+              
+            </section>
+            
+            <section class="card ok">
+              <h2>Quality proxy</h2>
+              <p class="meta">quality · unit score_0_to_1 · threshold mean gte 0.75</p>
+              <p class="headline">0.8800 <span>score_0_to_1</span></p>
+              <table><tr><td>Mean quality</td><td>0.8800</td></tr></table>
+              
+            </section>
+            </div>
+</body>
+</html>

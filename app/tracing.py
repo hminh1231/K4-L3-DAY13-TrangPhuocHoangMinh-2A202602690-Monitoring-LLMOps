@@ -5,6 +5,22 @@ from contextlib import contextmanager
 from typing import Any
 
 try:
+    from dotenv import load_dotenv
+
+    # Langfuse reads credentials at import time. Load .env before that import.
+    load_dotenv()
+except ImportError:  # pragma: no cover - chỉ dùng khi chưa cài requirements
+    pass
+
+os.environ.setdefault(
+    "OTEL_SERVICE_NAME",
+    os.getenv("APP_NAME", "day13-monitoring-llmops-lab"),
+)
+# Default SDK timeout is 5s. On a slow connect, urllib3 spends that budget
+# connecting and then fails the read with timeout 0.
+os.environ.setdefault("LANGFUSE_TIMEOUT", "20")
+
+try:
     from langfuse import get_client, observe, propagate_attributes
 
     LANGFUSE_SDK_AVAILABLE = True
@@ -22,6 +38,12 @@ except ImportError:  # pragma: no cover - chỉ dùng khi chưa cài requirement
             return None
 
         def update_current_generation(self, **kwargs: Any) -> None:
+            return None
+
+        def score_current_trace(self, **kwargs: Any) -> None:
+            return None
+
+        def flush(self) -> None:
             return None
 
     def get_client():

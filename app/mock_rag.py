@@ -3,6 +3,8 @@ from __future__ import annotations
 import time
 
 from .incidents import STATE
+from .pii import scrub_text
+from .tracing import get_langfuse_client, observe
 
 CORPUS = {
     "refund": ["Refunds are available within 7 days with proof of purchase."],
@@ -11,13 +13,25 @@ CORPUS = {
 }
 
 
+@observe(name="retrieve-context", as_type="retriever", capture_input=False, capture_output=False)
 def retrieve(message: str) -> list[str]:
+    client = get_langfuse_client()
+    client.update_current_span(
+        input={"query": scrub_text(message)},
+        metadata={"source": "mock-corpus"},
+    )
     if STATE["tool_fail"]:
         raise RuntimeError("Vector store timeout")
     if STATE["rag_slow"]:
         time.sleep(2.5)
     lowered = message.lower()
-    for key, docs in CORPUS.items():
+    docs = ["No domain document matched. Use general fallback answer."]
+    for key, matches in CORPUS.items():
         if key in lowered:
-            return docs
-    return ["No domain document matched. Use general fallback answer."]
+            docs = matches
+            break
+    client.update_current_span(
+        output={"documents": docs, "doc_count": len(docs)},
+        metadata={"source": "mock-corpus", "doc_count": len(docs)},
+    )
+    return docs

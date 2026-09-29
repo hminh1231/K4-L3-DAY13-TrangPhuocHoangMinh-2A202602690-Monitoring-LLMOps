@@ -27,6 +27,9 @@ class RecordingLangfuseClient:
     def update_current_span(self, **kwargs) -> None:
         self.span_updates.append(kwargs)
 
+    def score_current_trace(self, **kwargs) -> None:
+        return None
+
 
 def test_agent_records_prompt_version_with_v4_observation_api(monkeypatch) -> None:
     monkeypatch.setenv("LANGFUSE_PROMPT_NAME", "day13-chat")
