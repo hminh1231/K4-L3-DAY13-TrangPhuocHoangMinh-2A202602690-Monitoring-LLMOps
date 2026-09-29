@@ -8,7 +8,7 @@
 - **MSSV:** 2A202602690
 - **Lớp:** K4-L3A
 - **Repository URL:** https://github.com/hminh1231/K4-L3-DAY13-TrangPhuocHoangMinh-2A202602690-Monitoring-LLMOps
-- **Commit SHA cuối:**
+- **Commit SHA cuối:** PENDING_SHA
 - **Challenge ID:** day13-k4-l3a-monitoring-llmops-v1
 - **Tên project Langfuse cá nhân:** `day13-k4-l3a-2A202602690`
 
@@ -37,24 +37,24 @@
 
 | Nội dung | Baseline | Kết quả cuối | Nhận xét |
 |---|---|---|---|
-| `validate_logs.py` | 30/100. 84 records; 60 thiếu field bắt buộc; 60 thiếu enrichment; 0 correlation ID. FAILED: required fields, correlation ID, enrichment. PASSED: PII scrubbing. | 100/100. 20 records; 0 thiếu field; 0 thiếu enrichment; 10 correlation ID; 0 PII leak. | Log cũ đã đổi tên `data/logs.baseline.jsonl` rồi đo lại. |
-| `validate_dashboard.py` | HỢP LỆ: 6/6 panel có trong dashboard contract. | HỢP LỆ: 6/6 panel có trong dashboard contract. | Contract giữ nguyên 6 panel; runtime đọc `data/logs.jsonl`. |
-| `pytest` | 22 passed (5.54s) | 24 passed | |
-| Số traces hợp lệ | Chưa đo ở baseline. | 10 trace API, `prompt_source=langfuse`, version 1. | Cùng correlation ID với log. |
-| Số PII leak | 0 | 0 | Email, điện thoại và số thẻ trong sample query đã thành `[REDACTED_*]`. |
-| Latency P95 / TTFT P95 | Chưa đo. Load test chỉ in latency từng request; correlation ID trả về `MISSING`. | P95 latency 1187ms, TTFT P95 50ms trên 40 `response_sent`. | Cả hai dưới ngưỡng SLO 3000ms. |
-| Retrieval success rate | Chưa đo ở baseline. | 100% | `tool_success == true` trên mọi response trong cửa sổ 60 phút. |
+| `validate_logs.py` | 30/100. 84 records; 60 thiếu field bắt buộc; 60 thiếu enrichment; 0 correlation ID. FAILED: required fields, correlation ID, enrichment. PASSED: PII scrubbing. | 100/100. 105 records; 0 thiếu field; 0 thiếu enrichment; 49 correlation ID; 0 PII leak. | Log cũ nằm ở `data/logs.baseline.jsonl`. File cuối gồm load test, challenge và một request kiểm tra CCCD. |
+| `validate_dashboard.py` | HỢP LỆ: 6/6 panel có trong dashboard contract. | HỢP LỆ: 6/6 panel có trong dashboard contract. | Contract giữ nguyên 6 panel. Ảnh runtime là `evidence/11-dashboard-overview.png`. |
+| `pytest` | 22 passed (5.54s) | 24 passed in 10.37s | |
+| Số traces hợp lệ | Chưa đo ở baseline. | 23 root `lab-agent-run` có `prompt_source=langfuse`. Ảnh liệt kê 10 trace load test lúc 08:23Z, version 1, label `production`. | Cùng correlation ID với log. |
+| Số PII leak | 0 | 0 | Email, điện thoại, số thẻ và CCCD trong input test đã thành `[REDACTED_*]`. |
+| Latency P95 / TTFT P95 | Chưa đo. Load test chỉ in latency từng request; correlation ID trả về `MISSING`. | Cửa sổ steady-state: P95 latency 1187ms, TTFT P95 50ms, 40 `response_sent`. | Cả hai dưới ngưỡng SLO 3000ms. Năm request `rag_slow` nằm ngoài cửa sổ của ảnh overview và được tách ở mục incident. |
+| Retrieval success rate | Chưa đo ở baseline. | 100% | `tool_success == true` trên response trong cửa sổ 60 phút của ảnh overview. |
 
 ## 4. Logging và PII
 
 - **Cách tạo/nhận và truyền correlation ID:** Mỗi request xóa context cũ. Nếu header `x-request-id` đúng dạng `req-<8-hex>` thì dùng ID đó, không thì sinh `req-` cộng 8 ký tự hex. ID được bind vào structlog và trả lại ở body cùng header `x-request-id`; thời gian xử lý nằm ở `x-response-time-ms`.
 - **Các metadata được ghi vào structured log:** Trước `request_received`, log được gắn `user_id_hash`, `session_id`, `feature`, `model`, `env`. `correlation_id` đi theo context của request.
 - **Cách bảo đảm PII được scrub trước khi ghi:** Processor `scrub_event` chạy trước `JsonlFileProcessor` và `JSONRenderer`. Pattern che email, điện thoại Việt Nam, CCCD 12 số và thẻ 16 số.
-- **Cách kiểm chứng kết quả:** Đổi tên log baseline thành `data/logs.baseline.jsonl`, chạy lại load test rồi `python scripts/validate_logs.py` được 100/100. Pytest: 24 passed. Preview log còn `[REDACTED_EMAIL]`, không còn email/số điện thoại/số thẻ thô.
+- **Cách kiểm chứng kết quả:** Đổi tên log baseline thành `data/logs.baseline.jsonl`, chạy lại load test rồi `python scripts/validate_logs.py` được 100/100 trên 105 records. Pytest: 24 passed. Log `req-360dfb39`, `req-8cef9c0e`, `req-a3bef625` và `req-cccd0001` chỉ còn `[REDACTED_EMAIL]`, `[REDACTED_PHONE_VN]`, `[REDACTED_CREDIT_CARD]`, `[REDACTED_CCCD]`.
 
 ## 5. Tracing và prompt versioning
 
-- **Cách xác nhận traces do chính tôi tạo trong project cá nhân:** Project Langfuse `day13-k4-l3a-2A202602690`. Mười request `POST /chat` vừa chạy trả correlation ID `req-360dfb39`, `req-005cb053`, `req-c61eb900`, `req-493d26a0`, `req-8cef9c0e`, `req-c22a6977`, `req-fbb608b8`, `req-8602dfce`, `req-a3bef625`, `req-8e7a85cb`. Cùng các ID này nằm trong metadata trace.
+- **Cách xác nhận traces do chính tôi tạo trong project cá nhân:** Project Langfuse `day13-k4-l3a-2A202602690`. Có 23 root `lab-agent-run` với `prompt_source=langfuse`. Mười request `POST /chat` lúc 08:23Z trả correlation ID `req-360dfb39`, `req-005cb053`, `req-c61eb900`, `req-493d26a0`, `req-8cef9c0e`, `req-c22a6977`, `req-fbb608b8`, `req-8602dfce`, `req-a3bef625`, `req-8e7a85cb`. Cùng các ID này nằm trong metadata trace, ảnh `evidence/06-trace-list.png`.
 - **Cấu trúc root/retrieval/generation observations:** Root `lab-agent-run` loại `agent`. Con: `retrieve-context` loại `retriever`, `generate-response` loại `generation` (model `claude-sonnet-4-5`, usage input/output, cost), và `score-answer-quality` loại `evaluator`. Input/output đã scrub PII.
 - **Cách nối trace với log:** `correlation_id` được đưa vào trace metadata qua `propagate_attributes` và ghi trong structured log. Ví dụ log `req-360dfb39` khớp trace `dd6821d0d4388bd977a75cb66dffe308`.
 - **Prompt name:** `day13-chat`
@@ -83,20 +83,20 @@
 
 ## 8. Giải thích và tự đánh giá
 
-- **Một quyết định kỹ thuật quan trọng và lý do:**
-- **Một lỗi/blocker đã gặp:**
-- **Cách tìm nguyên nhân và xử lý:**
-- **Cách hiểu luồng Metrics → Logs → Traces:**
-- **Vai trò của prompt version, token/cost, SLO hoặc rollback trong vận hành LLM:**
-- **Điều quan trọng nhất đã học:**
-- **Hạn chế hoặc phần chưa hoàn thành, nếu có:**
+- **Một quyết định kỹ thuật quan trọng và lý do:** PII được scrub hai lần: `summarize_text` trước khi tạo preview, rồi processor `scrub_event` chạy trước `JsonlFileProcessor`. Nếu scrub sau khi ghi file thì dòng log đã lọt. `correlation_id` được đưa vào trace metadata bằng `propagate_attributes`, không chỉ ghi ở log, để nối được `req-360dfb39` với trace `dd6821d0d4388bd977a75cb66dffe308`. Prompt fetch dùng cache 60 giây, timeout 2 giây, `max_retries=0` và fallback local: Langfuse chậm không làm hỏng request, đổi lại request đầu sau khi hết cache chờ thêm khoảng fetch. Khoảng đó hiện trên `req-3de57ec1` (~1.2s) và trên waterfall `req-360dfb39` (retrieval kết thúc 08:23:14.908Z, generation bắt đầu 08:23:15.942Z).
+- **Một lỗi/blocker đã gặp:** Sau khi sửa logging, `validate_logs.py` vẫn 30/100 vì validator đọc cả `data/logs.jsonl` cũ (84 records, 0 correlation ID). Trace đầu còn `correlation_id=MISSING` và `prompt_source=local-fallback` khi prompt `day13-chat` chưa có trên project. SDK Langfuse timeout mặc định 5 giây bị lỗi read timeout 0 khi connect chậm.
+- **Cách tìm nguyên nhân và xử lý:** Đối chiếu scorecard với file log: field thiếu và enrichment thiếu nằm ở các dòng ghi trước khi bind context. Đổi file đó thành `data/logs.baseline.jsonl`, chạy lại load test, validator lên 100/100. Tạo prompt v1/v2 rồi chạy lại workload; metadata chuyển sang `prompt_source=langfuse`. Trong `app/tracing.py` đặt `LANGFUSE_TIMEOUT=20` trước khi import client.
+- **Cách hiểu luồng Metrics → Logs → Traces:** Panel latency cho biết đuôi chậm và khoảng thời gian. Lọc `response_sent` trong khoảng đó lấy `correlation_id`. Mở trace cùng ID rồi so sánh span. Với challenge, P95 3852ms dẫn tới `req-3de57ec1`; span `retrieve-context` 2.502s trong khi `generate-response` 0.151s và TTFT 50ms, nên nguyên nhân là retrieval `rag_slow`, không phải model hay cost.
+- **Vai trò của prompt version, token/cost, SLO hoặc rollback trong vận hành LLM:** Label `production` chọn prompt đang phục vụ. V1 là baseline. V2 thêm ràng buộc trả lời tối đa hai câu và trích docs. Promote gán `production` sang v2, trace `a7903cb198304cb6a90dd9537b34d4c3` ghi `prompt_version=2`. Rollback trả `production` về v1; label hiện tại là v1 = `baseline` + `production`, v2 = `candidate` + `latest`, và các trace sau 08:14:39Z đều là v1. Token và cost trên generation cho biết prompt dài hơn có đốt tiền không. SLO 99.5% / 3000ms thành error budget 0.5%. Alert `slow_user_responses` bắn khi P95 vượt 3000ms trong 5 phút; `weak_answers` là chỗ rollback nếu chất lượng tụt ngay sau promote.
+- **Điều quan trọng nhất đã học:** Metric, log và trace chỉ thành một kết luận khi cùng một `correlation_id`. Validator 6/6 chỉ chứng minh contract dashboard, không chứng minh panel có dữ liệu.
+- **Hạn chế hoặc phần chưa hoàn thành, nếu có:** Cửa sổ sự cố chỉ khoảng 15 giây nên alert 5 phút chưa kịp cháy. Khoảng chờ `resolve_prompt` chưa có span riêng. `data/logs.jsonl` nằm trong `.gitignore` nên người chấm đối chiếu bằng evidence, không bằng file log trên Git. Ảnh trace/prompt lấy từ dữ liệu của project Langfuse cá nhân `day13-k4-l3a-2A202602690`; trang web Langfuse yêu cầu đăng nhập nên ảnh không phải giao diện web và không mở trang API Keys.
 
 ## 9. Checklist trước khi nộp
 
-- [ ] Kết quả và evidence thuộc commit SHA cuối.
-- [ ] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
-- [ ] Incident evidence nối đúng metric → log → trace.
-- [ ] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
-- [ ] Repository chạy lại được theo README.
-- [ ] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
+- [x] Kết quả và evidence thuộc commit SHA cuối.
+- [x] Tất cả ảnh/output mở được bằng đường dẫn tương đối.
+- [x] Incident evidence nối đúng metric → log → trace.
+- [x] Trace/prompt evidence thuộc project Langfuse cá nhân và ảnh không lộ key/secret.
+- [x] Repository chạy lại được theo README.
+- [x] Không có secret, API key, PII thô hoặc evidence của người khác/lớp khác.
 - [ ] URL repo và commit SHA cuối đã được nộp trên LMS/Codelabs.
